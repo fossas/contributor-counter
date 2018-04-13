@@ -1,0 +1,10 @@
+builds:
+  - main: ./cmd/contributors/
+    binary: contributors
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - "386"
