@@ -126,7 +126,8 @@ func main() {
 		shortlogBytes, err := cmd.Output()
 		if err != nil {
 			debugf("Stderr: %#v", string(err.(*exec.ExitError).Stderr))
-			panic(err)
+			warnf("Warning: could not get contributors from repository %#v (it may be empty)", repo.Name)
+			continue
 		}
 		shortlog := strings.TrimSpace(string(shortlogBytes))
 		debugf("Shortlog: %#v", shortlog)
