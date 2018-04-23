@@ -37,8 +37,9 @@ type Contributor struct {
 }
 
 var (
-	flagDebug = flag.Bool("debug", false, "print debug info to stderr")
-	flagDays  = flag.Int("days", 90, "days over which to count contributors")
+	flagDebug    = flag.Bool("debug", false, "print debug info to stderr")
+	flagInsecure = flag.Bool("insecure-skip-verify-ssl", false, "do not validate SSL certificates")
+	flagDays     = flag.Int("days", 90, "days over which to count contributors")
 )
 
 func main() {
