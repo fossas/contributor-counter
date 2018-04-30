@@ -102,6 +102,13 @@ func main() {
 		}
 		defer os.RemoveAll(dir)
 		debugf("TempDir: %#v", dir)
+		debugf(
+			"git",
+			"clone",
+			fmt.Sprintf("--shallow-since=%s days ago", days),
+			cloneURL.String(),
+			dir,
+		)
 		_, err = exec.Command(
 			"git",
 			"clone",
