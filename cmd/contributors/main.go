@@ -12,39 +12,45 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/mitchellh/mapstructure"
 )
 
+// A RepoResponse is part of the Bitbucket API's /api/repositories response.
 type RepoResponse struct {
 	Name  string
 	SCMID string
 	Links Links
 }
 
+// A Links object contains links to Bitbucket API objects.
 type Links struct {
 	Clone []Link
 	Self  []Link
 }
 
+// A Link object contains many kinds of links.
 type Link struct {
 	Name string
 	Href string
 }
 
+// A Contributor is a single git author and a count of their contributions.
 type Contributor struct {
 	Name  string
 	Count int
 }
 
 var (
-	flagDebug    = flag.Bool("debug", false, "print debug info to stderr")
-	flagInsecure = flag.Bool("insecure-skip-verify-ssl", false, "do not validate SSL certificates")
-	flagDays     = flag.Int("days", 90, "days over which to count contributors")
+	flagDebug     = flag.Bool("debug", false, "print debug info to stderr")
+	flagInsecure  = flag.Bool("insecure-skip-verify-ssl", false, "do not validate SSL certificates")
+	flagDeepClone = flag.Bool("force-deep-clone", false, "use a deep clone (slower but works on old git versions)")
+	flagDays      = flag.Int("days", 90, "days over which to count contributors")
 )
 
 func main() {
+	// Read user inputs
 	flag.Parse()
-
 	user := os.Getenv("BITBUCKET_USER")
 	password := os.Getenv("BITBUCKET_PASSWORD")
 	server, err := url.Parse(os.Getenv("BITBUCKET_URL"))
@@ -52,6 +58,19 @@ func main() {
 		panic(err)
 	}
 	days := strconv.Itoa(*flagDays)
+
+	// Auto-detect git version
+	shallowCloneVersion := semver.MustParse("2.11.0")
+	v, err := exec.Command("git", "--version").Output()
+	if err != nil {
+		panic(err)
+	}
+	gitVersion, err := semver.Parse(strings.TrimSpace(strings.TrimPrefix(string(v), "git version ")))
+	if err != nil {
+		panic(err)
+	}
+	useDeepClone := gitVersion.LT(shallowCloneVersion) || *flagDeepClone
+	debugf("Using deep clone: %t", useDeepClone)
 
 	// Get all visible repositories
 	reposURL, err := server.Parse("/rest/api/1.0/repos")
@@ -78,7 +97,8 @@ func main() {
 	for _, repo := range repos {
 		// Get clone URL
 		if repo.SCMID != "git" {
-			warnf("Unsupported SCM type: %s", repo.SCMID)
+			warnf("Unsupported SCM type (%s) for repository %s", repo.SCMID, repo.Name)
+			continue
 		}
 		var cloneURL *url.URL
 		for _, link := range repo.Links.Clone {
@@ -96,40 +116,24 @@ func main() {
 		}
 
 		// Clone repository locally into temporary directory
-		dir, err := ioutil.TempDir("", "fossa-contributor-count")
+		dir, err := ioutil.TempDir("", "fossa-contributor-count-")
 		if err != nil {
 			panic(err)
 		}
 		defer os.RemoveAll(dir)
 		debugf("TempDir: %#v", dir)
-		debugf(
-			"git",
-			"clone",
-			fmt.Sprintf("--shallow-since=%s days ago", days),
-			cloneURL.String(),
-			dir,
-		)
-		_, err = exec.Command(
-			"git",
-			"clone",
-			fmt.Sprintf("--shallow-since=%s days ago", days),
-			cloneURL.String(),
-			dir,
-		).Output()
+		cloneArgs := []string{"clone", cloneURL.String(), dir}
+		if !useDeepClone {
+			cloneArgs = append(cloneArgs, fmt.Sprintf("--shallow-since=%s days ago", days))
+		}
+		_, err = exec.Command("git", cloneArgs...).Output()
 		if err != nil {
 			panic(err)
 		}
 
 		// Run `git shortlog` and parse output
 		cmd := exec.Command(
-			"git",
-			"shortlog",
-			"HEAD",
-			"--summary",
-			"--email",
-			"--numbered",
-			fmt.Sprintf("--since=%s days ago", days),
-		)
+			"git", "shortlog", "HEAD", "--summary", "--email", "--numbered", fmt.Sprintf("--since=%s days ago", days))
 		cmd.Dir = dir
 		shortlogBytes, err := cmd.Output()
 		if err != nil {

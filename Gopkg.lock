@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/blang/semver"
+  packages = ["."]
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
@@ -10,6 +16,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b4a45c93927105e6dd2005fc9e2c1bf8e5e8f973e8b5bcc7f72bb6c4601155d9"
+  inputs-digest = "75afb64737fee30705df65d13dda630fdb51c21486a95d571ed66ba4b639abbe"
   solver-name = "gps-cdcl"
   solver-version = 1

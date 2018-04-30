@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// A PagedResponse contains pages of Values from Bitbucket.
 type PagedResponse struct {
 	IsLastPage    bool
 	NextPageStart int
@@ -60,6 +61,7 @@ yuGnBXj8ytqU0CwIPX4WecigUCAkVDNx
 	}
 }
 
+// NewClient constructs an HTTP client, optionally ignoring SSL certificates.
 func NewClient(insecure bool) *http.Client {
 	return &http.Client{
 		Timeout: 10 * time.Second,
@@ -70,6 +72,7 @@ func NewClient(insecure bool) *http.Client {
 	}
 }
 
+// Client loads the global client, optionally initializing it.
 func Client(insecure bool) *http.Client {
 	if client != nil {
 		return client
@@ -79,6 +82,7 @@ func Client(insecure bool) *http.Client {
 	return client
 }
 
+// GetPaged loads all pages of an endpoint.
 func GetPaged(endpoint *url.URL, user, password string) ([]interface{}, error) {
 	var values []interface{}
 	page, err := GetSinglePage(endpoint.String(), user, password)
@@ -99,6 +103,7 @@ func GetPaged(endpoint *url.URL, user, password string) ([]interface{}, error) {
 	return values, nil
 }
 
+// GetSinglePage loads a single page of an endpoint.
 func GetSinglePage(endpoint, user, password string) (PagedResponse, error) {
 	// Send request.
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
